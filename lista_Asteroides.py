@@ -7,8 +7,8 @@ diccionarioAsteroides = {}
 API_KEY = 'm6W81jDrD2TMVWarINf6yCbvesjH82cCUeGBFb41'       #API KEY de la NASA
 
 
-start_date = datetime.timedelta(days=7)       #fecha de hace 7 dias
 end_date = datetime.date.today()            #fecha actual que sirve lesgo
+start_date = end_date - datetime.timedelta(days=7)  # Fecha de hace 7 días
 
 
 urlBusqueda = f'https://api.nasa.gov/neo/rest/v1/feed?start_date={start_date}&end_date={end_date}&api_key={API_KEY}'        #Busqueda de meteoritos desde "start_date" hasta "end_date"
