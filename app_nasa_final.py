@@ -72,25 +72,20 @@ def obtener_datos_asteroides_desde_api():
 # FUNCIONES DE LA INTERFAZ
 # =========================================================
 
-def salir_de_fullscreen(event=None):
+def terminarPrograma(event=None):
     ventana.destroy()
     sys.exit()
 
-def configurar_scroll_region(event):
-    """Ajusta la región de desplazamiento del Canvas al tamaño del frame interno."""
+def scrollTabla(event):            #Ajusta la región de desplazamiento del Canvas al tamaño del frame interno
     global canvas_lista 
     canvas_lista.configure(scrollregion=canvas_lista.bbox("all"))
 
 
-def manejar_click_en_tabla(event, nombre_asteroide, diccionario):
-    """Función intermediaria para llamar a la visualización 3D al hacer click."""
+def click3D(event, nombre_asteroide, diccionario):               #Función intermediaria para llamar a la visualización 3D al hacer click.
     cargar_simulacion_3d(nombre_asteroide, diccionario)
 
 
-def cargar_simulacion_3d(nombre_asteroide, diccionario):
-    """
-    Crea una ventana Toplevel y muestra un gráfico 3D interactivo del asteroide.
-    """
+def cargar_simulacion_3d(nombre_asteroide, diccionario):                        #Crea una ventana Toplevel y muestra un gráfico 3D interactivo del asteroide
     asteroid_id = diccionario.get(nombre_asteroide)
     if not asteroid_id:
         print(f"No se encontró el ID para el asteroide: {nombre_asteroide}")
@@ -143,7 +138,6 @@ def abrir_menu():
     # Usa pack() para colocar el panel lateral
     panel_abierto.pack(side=tk.RIGHT, anchor=tk.NE, padx=50, pady=50, fill=tk.Y) 
 
-    tk.Label(panel_abierto, text="ASTEROIDES CERCANOS (7 DÍAS)", font=("Arial", 12, "bold"), bg="#111111", fg="orange").pack(pady=15, padx=10)
 
     for nombre in dic.keys():
         tk.Button(
@@ -192,7 +186,7 @@ def crear_tabla_dinamica(parent_frame):
         # Vincular el click a la función de visualización
         label_nombre.bind(
             "<Button-1>", 
-            lambda event, n=nombre: manejar_click_en_tabla(event, n, dic)
+            lambda event, n=nombre: click3D(event, n, dic)
         )
         
         # --- ETIQUETA NO INTERACTIVA (ID) ---
@@ -208,7 +202,7 @@ ventana = tk.Tk()
 ventana.title("Aplicación de Meteoritos Estilo NASA (Scroll e Interacción)")
 ventana.configure(bg=COLOR_NASA_AZUL)
 ventana.attributes('-fullscreen', True) 
-ventana.bind('<Escape>', salir_de_fullscreen)
+ventana.bind('<Escape>', terminarPrograma)
 
 # El contenedor principal usa PACK
 panel_principal = tk.Frame(
@@ -225,7 +219,6 @@ panel_principal.columnconfigure(1, weight=1)
 panel_principal.rowconfigure(1, weight=1) 
 
 
-# --- TÍTULO Y BOTÓN DE MENÚ (Fila 0 de panel_principal - usa GRID) ---
 titulo_lista = tk.Label(
     panel_principal,
     text="ASTEROIDES CERCANOS EN LOS ÚLTIMOS 7 DÍAS (DATOS API)",
@@ -233,14 +226,10 @@ titulo_lista = tk.Label(
     bg=COLOR_PANEL_OSCURO,
     fg="yellow"
 )
-titulo_lista.grid(row=0, column=0, pady=10, sticky="w", padx=20) 
+titulo_lista.grid(row=0, column=0, pady=10, padx=20, sticky="w")
 
 
-
-
-# --- ÁREA SCROLLABLE (Fila 1 de panel_principal - usa GRID y PACK) ---
-
-# 1. Crear el Canvas (La ventana de visualización)
+#La lista para poder scrollear
 canvas_lista = tk.Canvas(
     panel_principal, 
     bg=COLOR_PANEL_OSCURO, 
@@ -249,7 +238,7 @@ canvas_lista = tk.Canvas(
 canvas_lista.grid(row=1, column=0, columnspan=2, sticky="nsew", padx=20, pady=(0, 20))
 
 
-# 2. Crear la Scrollbar
+#Creacion del scrollbar
 scrollbar = tk.Scrollbar(
     panel_principal, 
     orient="vertical", 
@@ -258,25 +247,17 @@ scrollbar = tk.Scrollbar(
 scrollbar.grid(row=1, column=1, sticky="nse", padx=(0, 20), pady=(0, 20))
 
 
-# 3. Vincular el Canvas y la Scrollbar
-canvas_lista.configure(yscrollcommand=scrollbar.set)
+canvas_lista.configure(yscrollcommand=scrollbar.set)                     # Asocia el scrollbar vertical al canvas para que se mueva cuando el usuario interactúa con la barra.
 
-# 4. Crear el Frame Interno (El contenedor real de la tabla)
-frame_contenido = tk.Frame(canvas_lista, bg=COLOR_PANEL_OSCURO)
+frame_contenido = tk.Frame(canvas_lista, bg=COLOR_PANEL_OSCURO)          # Crea el frame interno donde se colocarán los widgets de la tabla de asteroides.
 
-# 5. Insertar el Frame Interno en el Canvas
-canvas_lista.create_window((0, 0), window=frame_contenido, anchor="nw")
+canvas_lista.create_window((0, 0), window=frame_contenido, anchor="nw")  # Inserta el frame_contenido dentro del canvas en la posición (0,0) y lo ancla arriba a la izquierda.
 
-# 6. Configurar el desplazamiento cuando el contenido cambie
-frame_contenido.bind("<Configure>", configurar_scroll_region)
+frame_contenido.bind("<Configure>", scrollTabla)                         # Actualiza la región de scroll del canvas cada vez que el frame interno cambia de tamaño.
 
-# 7. VINCULAR LA RUEDA DEL RATÓN AL CANVAS
-canvas_lista.bind_all("<MouseWheel>", lambda event: canvas_lista.yview_scroll(int(-1*(event.delta/120)), "units"))
+canvas_lista.bind_all("<MouseWheel>", lambda event: canvas_lista.yview_scroll(int(-1*(event.delta/120)), "units"))      # Permite que la rueda del mouse desplace el contenido del canvas verticalmente.
 
-
-# 8. Llenar el Frame Interno con los datos (La tabla)
-crear_tabla_dinamica(frame_contenido)
-
+crear_tabla_dinamica(frame_contenido)                                     # Llama a la función que crea y coloca la tabla de asteroides dentro del frame interno.
 
 if __name__ == "__main__":
     ventana.mainloop()
