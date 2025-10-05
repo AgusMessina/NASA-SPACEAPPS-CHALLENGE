@@ -2,18 +2,18 @@ import tkinter as tk
 import requests 
 import datetime
 import sys
-import numpy as np # Necesario para numpy en la lógica de simulación
+import numpy as np
 from Meteorito3D import Meteorito3D 
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg as FigureCavasTkAgg
 import matplotlib.pyplot as plt
 import random
+from PIL import Image, ImageTk # <-- ¡IMPORTACIÓN NECESARIA PARA LA IMAGEN!
 
 # Importar lógica consolidada (Reemplaza a lista_Asteroides)
 try:
     from logica_simulacion import diccionarioAsteroides as dic
     from logica_simulacion import obtener_datos_reales_para_ais, calcular_consecuencias, simular_desviacion
 except ImportError:
-    # Caso de fallo si el usuario no ha creado logica_simulacion.py
     print("Error: No se encontró logica_simulacion.py. Asegúrese de haber creado este archivo.")
     dic = {}
     def obtener_datos_reales_para_ais(id): return {'nombre': 'Datos Fallidos', 'diametro_metros': 300, 'velocidad_impacto_kms': 15.0, 'latitud_impacto': 40.71, 'longitud_impacto': -74.00, 'a': 1.5, 'e': 0.3, 'i': 5.0}
@@ -56,9 +56,17 @@ ax_3d_ais, ax_mapa_ais = None, None
 resultado_var_ais = None
 energia_label, crater_label, sismo_label, estado_label = None, None, None, None 
 
+# Variables para la imagen de fondo (GLOBALES)
+imagen_fondo_tk = None
+label_fondo = None
+
 # =========================================================
 # FUNCIONES DE LA SIMULACIÓN AIS (VENTANA NUEVA)
 # =========================================================
+
+# ... (Todas las funciones de la simulación AIS y 3D se mantienen iguales) ...
+# Dado que ocupan mucho espacio, se omiten aquí, pero se asume que están
+# definidas en tu código original, ya que la modificación es solo en el bloque de inicio.
 
 def actualizar_visualizacion_mapa(ax_mapa, resultados_mitigacion, consecuencias, nombre_ast):
     """Actualiza el mapa 2D de AIS."""
@@ -245,7 +253,6 @@ def lanzar_simulacion_ais_con_datos(nombre_asteroide, diccionario_asteroides):
     asteroid_id = diccionario_asteroides.get(nombre_asteroide)
     if not asteroid_id:
         asteroid_id = DATOS_ASTEROIDES_ESTATICOS.get(nombre_asteroide, "4_Vesta_ID_Fallback")
-        # En caso de datos estáticos, la lista estática tiene un dict, la lista dinámica tiene un str (ID)
         if isinstance(asteroid_id, dict):
              asteroid_id = asteroid_id.get('id', '4_Vesta_ID_Fallback')
         print("Error: ID de asteroide no encontrado. Usando datos de respaldo.")
@@ -268,62 +275,54 @@ def terminarPrograma(event=None):
     ventana.destroy()
     sys.exit()
 
-def scrollTabla(event):            
+def scrollTabla(event):              
     global canvas_lista 
     canvas_lista.configure(scrollregion=canvas_lista.bbox("all"))
 
 
-def click3D(event, nombre_asteroide, diccionario):               
+def click3D(event, nombre_asteroide, diccionario):                
     cargar_simulacion_3d(nombre_asteroide, diccionario)
-
 
 # ... (otras funciones arriba)
 
-def cargar_simulacion_3d(nombre_asteroide, diccionario):                        
+def cargar_simulacion_3d(nombre_asteroide, diccionario):                       
     asteroid_id = diccionario.get(nombre_asteroide)
     if not asteroid_id:
         print(f"No se encontró el ID para el asteroide: {nombre_asteroide}")
         return
     
-    # Si el diccionario es el estático, el valor es un dict, necesitamos el 'id'
     if isinstance(asteroid_id, dict):
         asteroid_id = asteroid_id.get('id', 'ID Desconocido')
 
     ventana_3d = tk.Toplevel(ventana)
     ventana_3d.title(f"Visualización 3D Detallada: {nombre_asteroide}")
-    ventana_3d.geometry("1100x700") # Aumentamos el tamaño
+    ventana_3d.geometry("1100x700") 
     ventana_3d.configure(bg="#1E1E1E")
     ventana_3d.grab_set()
 
-    # Estructura principal con GRID para dividir 3D y Datos
     main_frame = tk.Frame(ventana_3d, bg="#1E1E1E")
     main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-    main_frame.grid_columnconfigure(0, weight=3) # Gráfico 3D (más ancho)
-    main_frame.grid_columnconfigure(1, weight=2) # Datos (más estrecho)
+    main_frame.grid_columnconfigure(0, weight=3) 
+    main_frame.grid_columnconfigure(1, weight=2) 
     main_frame.grid_rowconfigure(0, weight=1)
 
-    # Frame para el gráfico 3D
     graph_frame = tk.Frame(main_frame, bg="#1E1E1E")
     graph_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
     
-    # Frame para los datos de la API (Panel lateral)
     data_frame = tk.Frame(main_frame, bg="#333333", padx=15, pady=15)
     data_frame.grid(row=0, column=1, sticky="ns", padx=10, pady=10)
-    data_frame.grid_columnconfigure(0, weight=1) # Permite que las etiquetas se llenen
+    data_frame.grid_columnconfigure(0, weight=1) 
 
-    # Título del panel de datos
     tk.Label(data_frame, text="DATOS DETALLADOS DEL OBJETO (NEO)", font=("Arial", 14, "bold"), fg="yellow", bg="#333333").pack(pady=10)
     tk.Label(data_frame, text=f"ID: {asteroid_id}", font=("Courier New", 12), fg="cyan", bg="#333333").pack(pady=5)
     
-    # Separador
     tk.Frame(data_frame, height=2, bg="#555555").pack(fill='x', pady=5)
 
 
     try:
         meteorito = Meteorito3D(NASA_API_KEY, asteroid_id)
-        meteorito.obtener_datos() # Llama a la API y carga todos los datos
+        meteorito.obtener_datos() 
         
-        # --- FUNCIÓN AUXILIAR PARA CREAR ETIQUETAS DE DATOS ---
         def crear_etiqueta_dato(parent, clave, valor, unidad=""):
             tk.Label(parent, 
                      text=f"{clave}:", 
@@ -338,31 +337,22 @@ def cargar_simulacion_3d(nombre_asteroide, diccionario):
                      bg="#333333", 
                      anchor="w").pack(fill='x', padx=10, pady=(0, 5))
 
-        # --- MOSTRAR DATOS CLAVE ---
-        
-        # 1. Diámetro
         diam_min = f"{meteorito.diameter_min_m:,.0f}" if meteorito.diameter_min_m is not None else "N/A"
         diam_max = f"{meteorito.diameter_max_m:,.0f}" if meteorito.diameter_max_m is not None else "N/A"
         crear_etiqueta_dato(data_frame, "Diámetro Min/Max", f"{diam_min} / {diam_max}", "m")
         
-        # 2. Magnitud Absoluta
         mag_h = f"{meteorito.absolute_magnitude_h:.2f}" if meteorito.absolute_magnitude_h is not None else "N/A"
         crear_etiqueta_dato(data_frame, "Magnitud Absoluta (H)", mag_h)
 
-        # Separador
         tk.Frame(data_frame, height=2, bg="#555555").pack(fill='x', pady=10)
 
-        # 3. Peligrosidad
         color_peligro = "red" if meteorito.is_hazardous else "lightgreen"
         texto_peligro = "SÍ" if meteorito.is_hazardous else "NO"
         tk.Label(data_frame, text="¿Potencialmente Peligroso?", font=("Arial", 12, "bold"), fg="yellow", bg="#333333").pack(fill='x', pady=5)
         tk.Label(data_frame, text=texto_peligro, font=("Arial", 18, "bold"), fg=color_peligro, bg="#333333", anchor="center").pack(fill='x', pady=5)
 
-
-        # Separador
         tk.Frame(data_frame, height=2, bg="#555555").pack(fill='x', pady=10)
         
-        # 4. Datos de Aproximación
         tk.Label(data_frame, text="DATOS DE APROXIMACIÓN MÁS CERCANA", font=("Arial", 12, "bold"), fg="yellow", bg="#333333").pack(pady=5)
         
         crear_etiqueta_dato(data_frame, "Fecha", meteorito.closest_approach_date)
@@ -374,7 +364,6 @@ def cargar_simulacion_3d(nombre_asteroide, diccionario):
         crear_etiqueta_dato(data_frame, "Distancia de Fallo", dist_au, "UA")
 
 
-        # --- GENERAR Y MOSTRAR GRÁFICO 3D ---
         meteorito.generar_puntos()
         fig = meteorito.graficar()
 
@@ -387,11 +376,8 @@ def cargar_simulacion_3d(nombre_asteroide, diccionario):
         print(f"Error al generar el gráfico 3D para {nombre_asteroide}: {e}")
         tk.Label(graph_frame, text=f"Error al generar el gráfico 3D o al obtener datos: {e}", fg="red", bg="#1E1E1E", font=("Arial", 14)).pack(pady=20)
     
-    # Botón de cierre
     tk.Button(data_frame, text="Cerrar Visualización", command=ventana_3d.destroy,
              bg="#C0392B", fg="white", font=("Arial", 12, "bold")).pack(pady=20)
-
-# ... (resto del archivo app_nasa_final.py)
 
 
 def crear_tabla_dinamica(parent_frame): 
@@ -405,11 +391,10 @@ def crear_tabla_dinamica(parent_frame):
     row_start = 0 
     
     # Encabezados de Columna
-    tk.Label(parent_frame, text="NOMBRE", font=("Courier New", 12, "bold"), bg=COLOR_PANEL_OSCURO, fg="yellow").grid(row=row_start, column=0, padx=20, pady=5, sticky="w")
-    tk.Label(parent_frame, text="ID", font=("Courier New", 12, "bold"), bg=COLOR_PANEL_OSCURO, fg="yellow").grid(row=row_start, column=1, padx=20, pady=5, sticky="w")
-    tk.Label(parent_frame, text="VISUALIZAR 3D", font=("Courier New", 12, "bold"), bg=COLOR_PANEL_OSCURO, fg="yellow").grid(row=row_start, column=2, padx=20, pady=5, sticky="w")
-    # NUEVO ENCABEZADO
-    tk.Label(parent_frame, text="SIMULAR AIS", font=("Courier New", 12, "bold"), bg=COLOR_PANEL_OSCURO, fg="yellow").grid(row=row_start, column=3, padx=20, pady=5, sticky="w")
+    tk.Label(parent_frame, text="NOMBRE", font=("Courier New", 12, "bold"), bg=COLOR_FONDO_TABLA, fg="yellow").grid(row=row_start, column=0, padx=20, pady=5, sticky="w")
+    tk.Label(parent_frame, text="ID", font=("Courier New", 12, "bold"), bg=COLOR_FONDO_TABLA, fg="yellow").grid(row=row_start, column=1, padx=20, pady=5, sticky="w")
+    tk.Label(parent_frame, text="VISUALIZAR 3D", font=("Courier New", 12, "bold"), bg=COLOR_FONDO_TABLA, fg="yellow").grid(row=row_start, column=2, padx=20, pady=5, sticky="w")
+    tk.Label(parent_frame, text="SIMULAR AIS", font=("Courier New", 12, "bold"), bg=COLOR_FONDO_TABLA, fg="yellow").grid(row=row_start, column=3, padx=20, pady=5, sticky="w")
 
 
     for i, (nombre, asteroid_id) in enumerate(datos_mostrar.items()):
@@ -420,7 +405,7 @@ def crear_tabla_dinamica(parent_frame):
             parent_frame, 
             text=nombre, 
             font=("Courier New", 12, "bold"), 
-            bg=COLOR_PANEL_OSCURO, 
+            bg=COLOR_FONDO_TABLA, 
             fg="white",
             cursor="hand2"
         )
@@ -433,9 +418,9 @@ def crear_tabla_dinamica(parent_frame):
         # --- COLUMNA ID ---
         id_mostrar = asteroid_id
         if isinstance(asteroid_id, dict):
-            id_mostrar = asteroid_id.get('id', 'ID Desconocido') # Para el caso estático
+            id_mostrar = asteroid_id.get('id', 'ID Desconocido')
             
-        tk.Label(parent_frame, text=id_mostrar, font=("Courier New", 12), bg=COLOR_PANEL_OSCURO, fg="cyan").grid(row=row_num, column=1, padx=20, pady=2, sticky="w")
+        tk.Label(parent_frame, text=id_mostrar, font=("Courier New", 12), bg=COLOR_FONDO_TABLA, fg="cyan").grid(row=row_num, column=1, padx=20, pady=2, sticky="w")
         
         # --- COLUMNA BOTÓN VISUALIZAR 3D ---
         tk.Button(
@@ -458,22 +443,80 @@ def crear_tabla_dinamica(parent_frame):
         ).grid(row=row_num, column=3, padx=20, pady=2, sticky="w")
 
 
+import os
+from pathlib import Path
+
+# ... (resto de las importaciones)
+
 # =========================================================
-# INTERFAZ GRÁFICA (TKINTER) - INICIO
+# INTERFAZ GRÁFICA (TKINTER) - INICIO CON IMAGEN DE FONDO
 # =========================================================
 
 ventana = tk.Tk()
-ventana.title("NASA NEO Monitor & AIS System")
-ventana.configure(bg=COLOR_NASA_AZUL)
-ventana.attributes('-fullscreen', True) 
-ventana.bind('<Escape>', terminarPrograma)
+# ... (otras configuraciones)
 
+# --- 1. CARGAR Y ESCALAR LA IMAGEN DE FONDO ---
+try:
+    # 1. Define la ruta absoluta al script actual
+    directorio_actual = Path(__file__).parent 
+    
+    # 2. Combina la ruta del script con el nombre del archivo
+    ruta_imagen_completa = directorio_actual / "descarga.jpg" 
+    
+    # 3. Abre la imagen usando la ruta completa
+    imagen_fondo_pil = Image.open(ruta_imagen_completa)
+    
+    # ... (el resto del código de redimensionamiento se mantiene) ...
+    
+    ancho_ventana = ventana.winfo_screenwidth()
+    alto_ventana = ventana.winfo_screenheight()
+    
+    imagen_fondo_pil = imagen_fondo_pil.resize((ancho_ventana, alto_ventana), Image.Resampling.LANCZOS)
+    
+    imagen_fondo_tk = ImageTk.PhotoImage(imagen_fondo_pil)
+    
+except NameError:
+    # Este error ocurre si ejecutas el código en un entorno interactivo (como IDLE)
+    # Volver a la ruta simple en ese caso
+    try:
+        imagen_fondo_pil = Image.open("descarga.jpg")
+        ancho_ventana = ventana.winfo_screenwidth()
+        alto_ventana = ventana.winfo_screenheight()
+        imagen_fondo_pil = imagen_fondo_pil.resize((ancho_ventana, alto_ventana), Image.Resampling.LANCZOS)
+        imagen_fondo_tk = ImageTk.PhotoImage(imagen_fondo_pil)
+    except Exception as e:
+        print(f"Error cargando la imagen de fondo: {e}. Se usará el color de fondo por defecto.")
+        imagen_fondo_tk = None
+
+except Exception as e:
+    print(f"Error cargando la imagen de fondo: {e}. Se usará el color de fondo por defecto.")
+    imagen_fondo_tk = None
+
+# ... (El resto del código de la interfaz sigue igual) ...
+
+# --- 2. CREAR EL LABEL DE FONDO Y COLOCARLO CON PLACE() ---
+if imagen_fondo_tk:
+    # Crear un Label para mostrar la imagen
+    label_fondo = tk.Label(ventana, image=imagen_fondo_tk)
+    
+    # Usar PLACE para colocar la imagen en (0,0) y que ocupe todo el espacio.
+    label_fondo.place(x=0, y=0, relwidth=1, relheight=1)
+
+    # **CRUCIAL:** Mantener una referencia a la imagen para evitar que Python la elimine (Garbage Collection).
+    ventana.imagen_fondo_referencia = imagen_fondo_tk
+
+# --- 3. CREAR EL PANEL PRINCIPAL (Se colocará encima de la imagen de fondo) ---
 panel_principal = tk.Frame(
     ventana,
+    # Hacemos que el panel sea ligeramente transparente al fondo
+    # En Tkinter, la única forma de "transparencia" es usar el mismo color de fondo,
+    # pero aquí podemos usar un color oscuro y poner un nivel de opacidad si fuera una
+    # librería externa. Como no lo es, dejamos el color sólido para un mejor contraste con la tabla.
     bg=COLOR_PANEL_OSCURO,
     bd=5,
     relief=tk.RIDGE
 )
+# Usamos pack() para este panel, que se coloca *encima* del Label de fondo.
 panel_principal.pack(padx=50, pady=50, fill=tk.BOTH, expand=True)
 
 panel_principal.columnconfigure(0, weight=1) 
@@ -491,22 +534,13 @@ tk.Label(
     fg="yellow"
 ).pack(side=tk.LEFT, padx=20) 
 
-# Botón de la Simulación AIS (Lanza el primer asteroide por defecto)
-# Se necesita un nombre para el botón. Usamos el primero de la lista.
 primer_asteroide = next(iter(dic), next(iter(DATOS_ASTEROIDES_ESTATICOS)))
 if isinstance(primer_asteroide, dict):
-    nombre_btn = primer_asteroide # Si es el estático
+    nombre_btn = primer_asteroide 
 else:
     nombre_btn = primer_asteroide
 
-tk.Button(
-    header_frame,
-    text=f"🚀 Lanzar AIS ({nombre_btn[:10]}...)",
-    command=lambda: lanzar_simulacion_ais_con_datos(nombre_btn, dic if dic else DATOS_ASTEROIDES_ESTATICOS),
-    bg=COLOR_SEGURO,
-    fg=COLOR_PANEL_OSCURO,
-    font=("Arial", 12, "bold")
-).pack(side=tk.RIGHT, padx=20)
+
 
 
 # --- ÁREA SCROLLABLE (Fila 1) ---
@@ -531,8 +565,12 @@ scrollbar = tk.Scrollbar(
 scrollbar.grid(row=0, column=1, sticky="ns")
 
 canvas_lista.configure(yscrollcommand=scrollbar.set)
+
+# Usamos COLOR_FONDO_TABLA para el fondo del Frame que contiene los datos (para que la tabla sea uniforme)
 frame_contenido = tk.Frame(canvas_lista, bg=COLOR_FONDO_TABLA)
 canvas_lista.create_window((0, 0), window=frame_contenido, anchor="nw")
+
+# Es esencial que el frame_contenido use el mismo fondo que las etiquetas de la tabla
 frame_contenido.bind("<Configure>", lambda event: canvas_lista.configure(scrollregion=canvas_lista.bbox("all")))
 canvas_lista.bind_all("<MouseWheel>", lambda event: canvas_lista.yview_scroll(int(-1*(event.delta/120)), "units"))
 
