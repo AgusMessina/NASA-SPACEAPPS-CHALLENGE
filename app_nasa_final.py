@@ -2,7 +2,7 @@ import tkinter as tk
 import requests 
 import datetime
 import sys
-from Meteorito3D import Meteorito3D
+from Meteorito3D import Meteorito3D 
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg as FigureCavasTkAgg
 from datetime import date, timedelta
 import matplotlib.pyplot as plt
@@ -17,15 +17,15 @@ from lista_Asteroides import start_date, end_date
 # =========================================================
 
 # Colores y estilos
-COLOR_NASA_AZUL = "#0B3D91"      
-COLOR_PANEL_OSCURO = "#2C3E50"  
+COLOR_NASA_AZUL = "#0B3D91" 
+COLOR_PANEL_OSCURO = "#2C3E50" 
 COLOR_TEXTO_CLARO = "white"
 
-# Clave de la API de la NASA (NeoWs)
+# Clave de la API de la NASA (solo como marcador de posición)
 NASA_API_KEY = "m6W81jDrD2TMVWarINf6yCbvesjH82cCUeGBFb41" 
 NEOWS_FEED_URL = "https://api.nasa.gov/neo/rest/v1/feed"
 
-# Diccionario de datos estáticos de emergencia (fallback si la API falla)
+# Diccionario de datos estáticos de emergencia 
 DATOS_ASTEROIDES_ESTATICOS = {
     "Vesta (Estatico)": {
         "id": "4 Vesta",
@@ -36,31 +36,26 @@ DATOS_ASTEROIDES_ESTATICOS = {
     }
 }
 
-panel_abierto = None
+panel_abierto = None 
 
 
 # =========================================================
 # FUNCIÓN DE API CENTRAL
 # =========================================================
 
-
 def obtener_datos_asteroides_desde_api():
-    """
-    Devuelve un diccionario {nombre: datos_detallados} y una lista de datos simples para la tabla principal,
-    usando el diccionario importado de lista_Asteroides.py.
-    """
+    """Devuelve datos estructurados a partir del diccionario importado."""
     datos_menu = {}
     datos_tabla = []
 
     for nombre, asteroid_id in dic.items():
-        # Puedes agregar más detalles si los tienes en el diccionario original
         datos_menu[nombre] = {
             "id": asteroid_id,
             "tipo": "Asteroide Cercano a la Tierra",
             "descripcion": f"ID: {asteroid_id}",
-            "peligrosidad": "Desconocida",  # Si tienes este dato, cámbialo aquí
-            "fecha_aprox": "N/A",           # Si tienes este dato, cámbialo aquí
-            "diameter_meters": None         # Si tienes este dato, cámbialo aquí
+            "peligrosidad": "Desconocida",  
+            "fecha_aprox": "N/A",          
+            "diameter_meters": None         
         }
         datos_tabla.append({
             "nombre": nombre,
@@ -81,12 +76,20 @@ def salir_de_fullscreen(event=None):
     ventana.destroy()
     sys.exit()
 
+def configurar_scroll_region(event):
+    """Ajusta la región de desplazamiento del Canvas al tamaño del frame interno."""
+    global canvas_lista 
+    canvas_lista.configure(scrollregion=canvas_lista.bbox("all"))
 
-# --- Función CLAVE: Integración de la Visualización 3D ---
+
+def manejar_click_en_tabla(event, nombre_asteroide, diccionario):
+    """Función intermediaria para llamar a la visualización 3D al hacer click."""
+    cargar_simulacion_3d(nombre_asteroide, diccionario)
+
 
 def cargar_simulacion_3d(nombre_asteroide, diccionario):
     """
-    Crea una ventana Toplevel y muestra un gráfico 3D interactivo del asteroide usando la clase Meteorito3D.
+    Crea una ventana Toplevel y muestra un gráfico 3D interactivo del asteroide.
     """
     asteroid_id = diccionario.get(nombre_asteroide)
     if not asteroid_id:
@@ -124,7 +127,7 @@ def cargar_simulacion_3d(nombre_asteroide, diccionario):
         tk.Label(ventana_3d, text="Error al generar el gráfico 3D. Intente reinstalar Matplotlib.", fg="red", bg="#1E1E1E", font=("Arial", 14)).pack(pady=20)
 
     tk.Button(ventana_3d, text="Cerrar Visualización", command=ventana_3d.destroy,
-              bg="#C0392B", fg="white", font=("Arial", 12, "bold")).pack(pady=10)
+             bg="#C0392B", fg="white", font=("Arial", 12, "bold")).pack(pady=10)
 
 
 def abrir_menu():
@@ -136,7 +139,9 @@ def abrir_menu():
         return
 
     panel_abierto = tk.Frame(ventana, bg="#111111", bd=5, relief=tk.RAISED)
-    panel_abierto.place(relx=1.0, rely=0, x=-50, y=0, anchor=tk.NE)
+    
+    # Usa pack() para colocar el panel lateral
+    panel_abierto.pack(side=tk.RIGHT, anchor=tk.NE, padx=50, pady=50, fill=tk.Y) 
 
     tk.Label(panel_abierto, text="ASTEROIDES CERCANOS (7 DÍAS)", font=("Arial", 12, "bold"), bg="#111111", fg="orange").pack(pady=15, padx=10)
 
@@ -157,44 +162,72 @@ def abrir_menu():
 # FUNCIÓN CLAVE: PARA RECARGAR LA TABLA PRINCIPAL
 # ---------------------------------------------------------
 
-def crear_tabla_dinamica(parent_frame):
+def crear_tabla_dinamica(parent_frame): 
+    """Crea la tabla de asteroides dentro del frame_contenido."""
+    
     for widget in parent_frame.winfo_children():
-        if int(widget.grid_info().get("row", 0)) > 0:
-            widget.destroy()
+        widget.destroy()
 
-    row_start = 1
-
+    row_start = 0 
+    
+    # Encabezados de Columna
     tk.Label(parent_frame, text="NOMBRE", font=("Courier New", 12, "bold"), bg=COLOR_PANEL_OSCURO, fg="yellow").grid(row=row_start, column=0, padx=20, pady=5, sticky="w")
-    tk.Label(parent_frame, text="ID", font=("Courier New", 12, "bold"), bg=COLOR_PANEL_OSCURO, fg="yellow").grid(row=row_start, column=0, padx=200, pady=5, sticky="w")
+    tk.Label(parent_frame, text="ID", font=("Courier New", 12, "bold"), bg=COLOR_PANEL_OSCURO, fg="yellow").grid(row=row_start, column=1, padx=20, pady=5, sticky="w")
 
     for i, (nombre, asteroid_id) in enumerate(dic.items()):
         row_num = row_start + 1 + i
-        tk.Label(parent_frame, text=nombre, font=("Courier New", 12), bg=COLOR_PANEL_OSCURO, fg="white").grid(row=row_num, column=0, padx=20, pady=2, sticky="w")
-        tk.Label(parent_frame, text=asteroid_id, font=("Courier New", 12), bg=COLOR_PANEL_OSCURO, fg="cyan").grid(row=row_num, column=0, padx=200, pady=2, sticky="w")
+        
+        # --- CREAR LA ETIQUETA INTERACTIVA (NOMBRE) ---
+        
+        label_nombre = tk.Label(
+            parent_frame, 
+            text=nombre, 
+            font=("Courier New", 12, "bold"), 
+            bg=COLOR_PANEL_OSCURO, 
+            fg="white",
+            cursor="hand2"
+        )
+        label_nombre.grid(row=row_num, column=0, padx=20, pady=2, sticky="w")
+
+        # Vincular el click a la función de visualización
+        label_nombre.bind(
+            "<Button-1>", 
+            lambda event, n=nombre: manejar_click_en_tabla(event, n, dic)
+        )
+        
+        # --- ETIQUETA NO INTERACTIVA (ID) ---
+        
+        tk.Label(parent_frame, text=asteroid_id, font=("Courier New", 12), bg=COLOR_PANEL_OSCURO, fg="cyan").grid(row=row_num, column=1, padx=20, pady=2, sticky="w")
+
 
 # =========================================================
 # INTERFAZ GRÁFICA (TKINTER) - INICIO
 # =========================================================
 
 ventana = tk.Tk()
-ventana.title("Aplicación de Meteoritos Estilo NASA (Datos API)")
+ventana.title("Aplicación de Meteoritos Estilo NASA (Scroll e Interacción)")
 ventana.configure(bg=COLOR_NASA_AZUL)
 ventana.attributes('-fullscreen', True) 
 ventana.bind('<Escape>', salir_de_fullscreen)
 
-panel_meteoritos = tk.Frame(
+# El contenedor principal usa PACK
+panel_principal = tk.Frame(
     ventana,
     bg=COLOR_PANEL_OSCURO,
     bd=5,
     relief=tk.RIDGE
 )
-panel_meteoritos.pack(padx=50, pady=50, fill=tk.BOTH, expand=True)
+panel_principal.pack(padx=50, pady=50, fill=tk.BOTH, expand=True)
 
-panel_meteoritos.columnconfigure(0, weight=9) 
-panel_meteoritos.columnconfigure(1, weight=1) 
+# Configuración del Grid para el contenido (Título, Menú y Canvas)
+panel_principal.columnconfigure(0, weight=9) 
+panel_principal.columnconfigure(1, weight=1)
+panel_principal.rowconfigure(1, weight=1) 
 
+
+# --- TÍTULO Y BOTÓN DE MENÚ (Fila 0 de panel_principal - usa GRID) ---
 titulo_lista = tk.Label(
-    panel_meteoritos,
+    panel_principal,
     text="ASTEROIDES CERCANOS EN LOS ÚLTIMOS 7 DÍAS (DATOS API)",
     font=("Arial", 16, "bold"),
     bg=COLOR_PANEL_OSCURO,
@@ -202,19 +235,48 @@ titulo_lista = tk.Label(
 )
 titulo_lista.grid(row=0, column=0, pady=10, sticky="w", padx=20) 
 
-boton_menu = tk.Button(
-    panel_meteoritos,
-    text="☰", 
-    font=("Arial", 20),
-    bg=COLOR_PANEL_OSCURO,
-    fg=COLOR_TEXTO_CLARO,
-    command=abrir_menu, 
-    bd=0, 
-    activebackground=COLOR_PANEL_OSCURO
-)
-boton_menu.grid(row=0, column=1, pady=10, sticky="e", padx=20)
 
-crear_tabla_dinamica(panel_meteoritos)
+
+
+# --- ÁREA SCROLLABLE (Fila 1 de panel_principal - usa GRID y PACK) ---
+
+# 1. Crear el Canvas (La ventana de visualización)
+canvas_lista = tk.Canvas(
+    panel_principal, 
+    bg=COLOR_PANEL_OSCURO, 
+    highlightthickness=0 
+)
+canvas_lista.grid(row=1, column=0, columnspan=2, sticky="nsew", padx=20, pady=(0, 20))
+
+
+# 2. Crear la Scrollbar
+scrollbar = tk.Scrollbar(
+    panel_principal, 
+    orient="vertical", 
+    command=canvas_lista.yview
+)
+scrollbar.grid(row=1, column=1, sticky="nse", padx=(0, 20), pady=(0, 20))
+
+
+# 3. Vincular el Canvas y la Scrollbar
+canvas_lista.configure(yscrollcommand=scrollbar.set)
+
+# 4. Crear el Frame Interno (El contenedor real de la tabla)
+frame_contenido = tk.Frame(canvas_lista, bg=COLOR_PANEL_OSCURO)
+
+# 5. Insertar el Frame Interno en el Canvas
+canvas_lista.create_window((0, 0), window=frame_contenido, anchor="nw")
+
+# 6. Configurar el desplazamiento cuando el contenido cambie
+frame_contenido.bind("<Configure>", configurar_scroll_region)
+
+# 7. VINCULAR LA RUEDA DEL RATÓN AL CANVAS
+canvas_lista.bind_all("<MouseWheel>", lambda event: canvas_lista.yview_scroll(int(-1*(event.delta/120)), "units"))
+
+
+# 8. Llenar el Frame Interno con los datos (La tabla)
+crear_tabla_dinamica(frame_contenido)
+
 
 if __name__ == "__main__":
     ventana.mainloop()
